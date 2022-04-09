@@ -32,5 +32,5 @@ def view(ip:str):
 		if key  == ord('q'):
 			cv2.destroyAllWindows()
 			client_socket.close()
-			
+
 	print('Stream Closed')
