@@ -68,9 +68,7 @@ import cv2
 import pickle
 import struct
 import imutils
-import mss
 import numpy
-import time
 
 
 # for getting user in gogle chrome
