@@ -19,3 +19,17 @@ Your average Discord Malware
 
 # Commands
 ![image](https://user-images.githubusercontent.com/49468484/185780369-6e5b50df-2a26-44f8-a913-2e5c0c14a03f.png)
+
+# Functions:
+
+   - Get user location and IP
+   - Close any open application on victim
+   - Lock/Shutdown/restart victim's PC
+   - Can Display our banner to the victim's PC
+   - Can get info about victim's PC
+   
+# Future Functions:
+   - Can open victim's discord thru the stolen TOKEN
+   - wreck their Discord account
+   - gain a shell and persistent shell to the victim
+   - stream victim's webcam
