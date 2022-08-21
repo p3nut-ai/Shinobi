@@ -2,15 +2,10 @@ discord
 mss
 requests
 urllib3
-pyWinhook
-pycaw
 comtypes
-pywin32
 geocoder
-sockets
-opencv-python
 pickle-mixin
 imutils
 numpy
-pycrypto
-pynput
+
+959449626149285988
