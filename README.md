@@ -1,7 +1,5 @@
 # Shinobi v1
 
-Your average Discord Malware
-
 ## 🗂️ Requirements
 
 * Python 3
